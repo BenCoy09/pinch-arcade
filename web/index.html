@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0D1820">
+<title>Pinch's Arcade</title>
+<meta name="description" content="A claw machine that shows its odds. The roll is sealed inside a private Ephemeral Rollup, drawn by MagicBlock VRF, and the receipt can be re-checked by anyone.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Special+Elite&family=Outfit:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="brand" id="brand"></div>
+  <span class="grow"></span>
+  <span class="wallet" id="walletChip" hidden><i></i><span id="walletTxt"></span></span>
+  <span class="pill" id="pearlPill" hidden><i></i><span id="bal">0</span></span>
+  <button class="icon-btn" id="sndBtn" aria-label="Sound on or off"><svg viewBox="0 0 24 24" fill="none" stroke="#C4E6DF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path id="sndWave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg></button>
+</div></header>
+
+<main>
+<section class="view wrap" id="v-start">
+  <div class="eyebrow">Pinch's Arcade, left to him by Uncle Crimp</div>
+  <h1 class="hero">The house always wins. Until Pinch shows you the receipts.</h1>
+  <p class="lead">Some machines hide their odds. Pinch shows you everything: a sealed roll before you move, and a receipt after that you can re-check yourself.</p>
+  <div class="story"><div id="storyPinch"></div><p><b>Crimp's sign said "WIN EVERY TIME".</b> His claws never held, and the golden pearl he promised was never in the machine. Pinch is paying that debt back one honest receipt at a time.</p></div>
+  <button class="bigbtn" id="startBtn">Start playing</button>
+  <ul class="steps" id="steps" hidden></ul>
+  <div id="startErr"></div>
+  <div class="notice"><b>Real, on Solana devnet.</b> Starting makes a throwaway wallet in this browser and a tiny faucet tops it up with test SOL. Pearls are a game score, not money. The seal is a hardware enclave (Intel TDX): strong, but a trust assumption, not trustless.</div>
+</section>
+
+<section class="view wrap" id="v-street" hidden>
+  <div class="street">
+    <canvas id="stcv" aria-label="Pixel street. Drag or tap to walk Pinch to a door."></canvas>
+  </div>
+  <div class="pads st-pads">
+    <button class="pad" id="stL" aria-label="Walk left"><svg viewBox="0 0 24 24" fill="none" stroke="#C4E6DF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button class="pad drop" id="stAct" disabled>Walk to a door</button>
+    <button class="pad" id="stR" aria-label="Walk right"><svg viewBox="0 0 24 24" fill="none" stroke="#C4E6DF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
+  <p class="lat" id="stHint">Drag, tap the street, or use the arrows.</p>
+  <div class="row2"><button class="btn" id="stMiss">Missions</button><button class="btn" id="stRace">Race board</button><button class="btn pri" id="stSave">Save to Solana</button><button class="btn" id="stShelf">Shelf and stats</button><a class="btn" id="stVerify" href="verify.html" target="_blank" rel="noopener">Verify my receipts</a></div>
+  <p class="lat">The other crabs are real players, read from Solana devnet at their last save.</p>
+</section>
+
+<section class="view wrap" id="v-hub" hidden>
+  <div class="eyebrow">Pick a machine</div>
+  <h1 class="hero" id="hubTitle">Three machines. Every one shows its odds.</h1>
+  <p class="lead" id="hubSub">The pit for your next drop is already decided by a public seed. Rebuild it yourself on the receipt.</p>
+  <div class="mlist" id="mlist"></div>
+  <h2 class="sec">Your shelf</h2>
+  <div class="shelfrow" id="shelf"></div>
+  <dl class="stats" id="stats"></dl>
+  <div class="row2">
+    <button class="btn pri" id="toStreet">Back to the street</button>
+    <button class="btn" id="saveBtn">Save to Solana</button>
+    <a class="btn" id="verifyLink" href="verify.html" target="_blank" rel="noopener">Verify my receipts</a>
+    <button class="btn" id="keyBtn">Back up my key</button>
+    <button class="btn" id="refillBtn" hidden>Refill pearls</button>
+  </div>
+  <p class="lat" id="lat"></p>
+</section>
+
+<section class="view wrap" id="v-cab" hidden>
+  <div class="cab" id="cab">
+    <div class="marquee"><h2 id="mName">Shell Shop</h2><span class="mt" id="mTicket">5 pearls</span></div>
+    <div class="glass">
+      <canvas id="cv" aria-label="Claw machine. Drag to steer, press Drop."></canvas>
+      <div class="hud"><span class="tag" id="chance">Hold <b>--</b></span><span class="tag seal" id="commit">public pit</span></div>
+      <div class="tbar" id="tbarw" hidden><i id="tbar"></i></div>
+    </div>
+  </div>
+  <div class="pads" id="pads">
+    <button class="pad" id="bL" aria-label="Move left"><svg viewBox="0 0 24 24" fill="none" stroke="#C4E6DF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button class="pad drop" id="bD">DROP</button>
+    <button class="pad" id="bR" aria-label="Move right"><svg viewBox="0 0 24 24" fill="none" stroke="#C4E6DF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
+  <div class="phase" id="phase" hidden><div class="sealbox" id="phSeal"></div><ol id="phList"></ol></div>
+  <div class="say"><div id="sayAv"></div><div class="bubble" id="bubble"></div><button class="btn" id="back">Machines</button></div>
+</section>
+</main>
+
+<div id="sheet" hidden><div class="sheet-in" id="sheetBody"></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl-fast.min.js"></script>
+<script src="config.js"></script>
+<script src="js/rules.js"></script>
+<script src="js/chain.js"></script>
+<script src="js/art.js"></script>
+<script src="js/app.js"></script>
+<script src="js/street.js"></script>
+</body>
+</html>

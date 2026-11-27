@@ -1,0 +1,123 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Pinch's Arcade demo</title>
+<link rel="stylesheet" href="base.css">
+<style>
+html,body{margin:0;background:#0D1820;overflow:hidden}
+#vstage{position:absolute;left:0;top:0;width:1280px;height:720px;overflow:hidden;background:linear-gradient(180deg,#0f2a38 0%,#0a1b25 60%,#07131b 100%);font-family:Inter,system-ui,sans-serif;color:#E6EDEE}
+.disp{font-family:'Archivo Black','Anton',Inter,sans-serif;letter-spacing:.01em}
+.mono{font-family:'DejaVu Sans Mono','Anonymous Pro',monospace}
+.type{font-family:'Anonymous Pro','DejaVu Sans Mono',monospace}
+.scene{position:absolute;inset:0}
+.abs{position:absolute}
+.bub{position:absolute;border-radius:50%;background:rgba(196,230,223,.35)}
+.shaft{position:absolute;top:-40px;width:90px;height:820px;background:linear-gradient(180deg,rgba(196,230,223,.10),rgba(196,230,223,0));transform-origin:top center}
+.brass{color:#E0A63A}.cglass{color:#8FD0B4}.wax{color:#D8483B}.cream{color:#F1E6C8}.fog{color:#8FA4AD}
+.sign{left:290px;top:210px;width:700px;height:150px;background:#CDBE96;border-radius:12px;color:#0D1820;font-size:46px;display:flex;align-items:center;justify-content:center;box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.strike{position:absolute;left:16px;top:50%;height:12px;background:#B3261E;border-radius:6px;transform-origin:left center;transform:rotate(-8deg)}
+.row{position:absolute;left:170px;width:940px;height:118px;border-radius:22px;background:#142630;border:1px solid rgba(241,230,200,.16);display:flex;align-items:center;gap:26px;padding:0 34px;box-sizing:border-box}
+.row b{font-size:34px}.num{width:62px;height:62px;border-radius:50%;background:#B3261E;display:flex;align-items:center;justify-content:center;font-size:30px;flex:none}
+.node{position:absolute;top:200px;width:212px;height:300px;border-radius:24px;background:#142630;border:2px solid rgba(241,230,200,.16);text-align:center;box-sizing:border-box;padding:18px 14px}
+.node .ic{height:104px;display:flex;align-items:center;justify-content:center}
+.node h4{margin:10px 0 6px;font-size:21px;font-family:'Archivo Black',Inter}
+.node p{margin:0;font-size:15.5px;line-height:1.35;color:#8FA4AD}
+.tk{background:#F1E6C8;color:#1B1A14;border-radius:14px;box-shadow:0 24px 50px rgba(0,0,0,.5)}
+.vcard{position:absolute;width:540px;height:200px;border-radius:24px;background:#142630;border:1px solid rgba(241,230,200,.16);padding:26px 30px;box-sizing:border-box}
+.vcard h3{margin:0 0 10px;font-size:28px;font-family:'Archivo Black',Inter}.vcard p{margin:0;font-size:19px;line-height:1.45;color:#B7C6CC}
+.vchip{display:inline-block;border:1px solid rgba(241,230,200,.3);border-radius:999px;padding:8px 18px;font-size:18px;margin:0 6px 10px}
+.cap{position:absolute;left:0;right:0;bottom:26px;text-align:center;font-size:17px;color:#8FA4AD}
+</style></head><body><div id="vstage"></div>
+<script src="art.js"></script>
+<script>
+const W=1280,H=720,$=(h,p)=>{const d=document.createElement('div');d.innerHTML=h;const e=d.firstElementChild;(p||stage).appendChild(e);return e};
+const stage=document.getElementById('vstage');
+const cl=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)), eo=x=>1-Math.pow(1-x,3), eb=x=>{const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2)};
+const sg=(t,a,d)=>cl((t-a)/d);
+function show(el,p,o){o=o||{};const y=o.y==null?26:o.y,x=o.x||0,s=o.s==null?1:o.s,r=o.r||0;el.style.opacity=cl(p*1.4);el.style.transform='translate('+((1-p)*x)+'px,'+((1-p)*y)+'px) scale('+(s+(1-s)*p)+') rotate('+r+'deg)'}
+// ---------- background (global time)
+const shafts=[0,1,2,3].map(i=>$('<div class="shaft"></div>')), bubs=[];
+for(let i=0;i<26;i++){const s=3+((i*7)%6);bubs.push({e:$('<div class="bub" style="width:'+s+'px;height:'+s+'px"></div>'),x:(i*97)%W,sp:14+(i*11)%26,o:(i*53)%H,s})}
+function bg(t){shafts.forEach((e,i)=>{e.style.left=(120+i*330+Math.sin(t*.3+i)*40)+'px';e.style.transform='rotate('+(-14+Math.sin(t*.25+i*2)*4)+'deg)'});
+ bubs.forEach(b=>{b.e.style.left=(b.x+Math.sin(t*.8+b.s)*8)+'px';b.e.style.top=((H+20)-((t*b.sp+b.o)%(H+40)))+'px';b.e.style.opacity=.55})}
+const mark=$('<div class="abs mono" style="right:28px;top:22px;font-size:14px;color:#6f8791;letter-spacing:.08em">PINCH\'S ARCADE · SOLANA BLITZ v10</div>');
+// ---------- scenes: each returns update(t) in BASE seconds; engine warps to the real duration
+const SC=[];
+function scene(id,base,build){const root=$('<div class="scene" id="sc_'+id+'" style="opacity:0"></div>');SC.push({id,base,root,upd:build(root)})}
+
+scene('hook',10,r=>{
+ const sign=$('<div class="abs sign disp">CRIMP\'S: WIN EVERY TIME<i class="strike" style="width:0"></i></div>',r), st=sign.querySelector('.strike');
+ const l1=$('<div class="abs disp" style="left:0;right:0;top:430px;text-align:center;font-size:50px">His claws never held.</div>',r);
+ const l2=$('<div class="abs" style="left:0;right:0;top:505px;text-align:center;font-size:27px;color:#B7C6CC">The golden pearl he promised was never in the machine.</div>',r);
+ const pin=$('<div class="abs" style="left:1010px;top:470px;width:200px">'+pinchSVG('sad')+'</div>',r);
+ return t=>{const a=eb(sg(t,.3,.9));sign.style.opacity=cl(a*2);sign.style.transform='translateY('+((1-a)*-260)+'px) rotate(-3deg)';
+  st.style.width=(sg(t,2.6,.7)*(700-32))+'px';const sh=t>2.6&&t<3.4?Math.sin(t*90)*5*(1-sg(t,2.6,.8)):0;sign.style.marginLeft=sh+'px';
+  show(l1,eo(sg(t,4.2,.7)));show(l2,eo(sg(t,6,.7)));show(pin,eo(sg(t,7.6,.8)),{x:120,y:0})}});
+
+scene('real',16,r=>{
+ const ttl=$('<div class="abs disp" style="left:170px;top:90px;font-size:50px">What we face in real life</div>',r);
+ const items=[['1','You can\'t see the odds','The machine says "win every time". The real number is a secret.'],['2','The roll happens where you can\'t look','By the time you see a result, it was decided somewhere hidden.'],['3','You get a result, never a receipt','Nothing you can re-check yourself. You just trust the house.']];
+ const rows=items.map((it,i)=>$('<div class="row" style="top:'+(210+i*140)+'px"><div class="num disp">'+it[0]+'</div><div><b class="disp" style="font-size:30px">'+it[1]+'</b><div style="font-size:19px;color:#8FA4AD;margin-top:6px">'+it[2]+'</div></div></div>',r));
+ const end=$('<div class="abs disp wax" style="left:0;right:0;top:640px;text-align:center;font-size:34px">So everyone just trusts the house.</div>',r);
+ return t=>{show(ttl,eo(sg(t,.3,.7)));rows.forEach((e,i)=>show(e,eo(sg(t,2+i*3.4,.8)),{x:-60,y:0}));show(end,eo(sg(t,12.8,.8)))}});
+
+scene('meet',10,r=>{
+ const pin=$('<div class="abs" style="left:150px;top:150px;width:380px">'+pinchSVG('happy')+'</div>',r);
+ const h=$('<div class="abs disp" style="left:600px;top:150px;width:600px;font-size:54px;line-height:1.1">Pinch inherited the arcade.</div>',r);
+ const p=$('<div class="abs" style="left:600px;top:290px;width:560px;font-size:28px;line-height:1.4;color:#B7C6CC">He plays by one rule: <b class="brass">show everything.</b> A sealed roll before the drop. A receipt after it.</div>',r);
+ const L=[['#D8483B','Red = hidden'],['#F1E6C8','Cream = proven'],['#8FD0B4','Sea-glass = verified'],['#E0A63A','Brass = yours']];
+ const leg=L.map((l,i)=>$('<div class="abs" style="left:600px;top:'+(440+i*44)+'px;font-size:23px;display:flex;align-items:center;gap:16px"><i style="width:22px;height:22px;border-radius:50%;background:'+l[0]+';display:block"></i>'+l[1]+'</div>',r));
+ return t=>{show(pin,eb(sg(t,.2,.9)),{x:-80,y:0,s:.8});show(h,eo(sg(t,.8,.7)));show(p,eo(sg(t,2.2,.7)));leg.forEach((e,i)=>show(e,eo(sg(t,4.8+i*.8,.5)),{x:30,y:0}))}});
+
+scene('how',24,r=>{
+ const ttl=$('<div class="abs disp" style="left:60px;top:70px;font-size:46px">How one drop works</div>',r);
+ const sub=$('<div class="abs" style="left:60px;top:132px;font-size:21px;color:#8FA4AD">Every step is a real Solana transaction. Measured from Nigeria: a few seconds end to end.</div>',r);
+ const H='0123456789abcdef0123456789abcd';
+ const defs=[
+  ['1  Aim locks','The pit for this drop is already fixed by a public seed. Nothing can move after you commit.','<svg width="92" height="92" viewBox="0 0 92 92" fill="none" stroke="#E0A63A" stroke-width="5" stroke-linecap="round"><circle cx="46" cy="46" r="26"/><path d="M46 8v22M46 62v22M8 46h22M62 46h22"/></svg>'],
+  ['2  Sealed','Your account moves into a private MagicBlock rollup. Even your own wallet can\'t read it.','<div style="width:92px;height:92px">'+sealSVG(H)+'</div>'],
+  ['3  VRF roll','MagicBlock verifiable randomness draws the number inside the sealed room.','<div class="disp" style="font-size:44px;color:#7DF3E1;border:4px solid #7DF3E1;border-radius:18px;padding:8px 14px">VRF</div>'],
+  ['4  Opened','One transaction opens the seal. The roll becomes public, with its proof.','<div style="width:92px;height:92px">'+openedSVG(H,true)+'</div>'],
+  ['5  Re-checked','Your browser recomputes the pit, the chance and the verdict from public rules.','<svg width="92" height="92" viewBox="0 0 92 92" fill="none" stroke="#8FD0B4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="46" cy="46" r="34"/><path d="M28 47l13 13 25-27"/></svg>']];
+ const nodes=defs.map((d,i)=>$('<div class="node" style="left:'+(40+i*242)+'px"><div class="ic">'+d[2]+'</div><h4>'+d[0]+'</h4><p>'+d[1]+'</p></div>',r));
+ const line=$('<div class="abs" style="left:60px;top:540px;width:1160px;height:6px;border-radius:3px;background:#1b3340"></div>',r), fill=$('<div class="abs" style="left:60px;top:540px;width:0;height:6px;border-radius:3px;background:#E0A63A"></div>',r);
+ const dot=$('<div class="abs" style="left:52px;top:531px;width:24px;height:24px;border-radius:50%;background:#E0A63A;box-shadow:0 0 24px #E0A63A"></div>',r);
+ const note=$('<div class="abs fog" style="left:60px;right:60px;top:590px;font-size:19px;line-height:1.5">Trust note: the sealed room is a hardware enclave (Intel TDX) run by MagicBlock. That is a trust assumption, not trustless. What you can always check yourself is every number on the receipt.</div>',r);
+ return t=>{show(ttl,eo(sg(t,.2,.6)));show(sub,eo(sg(t,.7,.6)));
+  nodes.forEach((n,i)=>{const s=1.6+i*3.7,a=eo(sg(t,s,.6));show(n,a,{y:40});const on=sg(t,s,.4)>0&&(i===4||t<s+3.7);n.style.borderColor=on?'#E0A63A':'rgba(241,230,200,.16)'});
+  const prog=cl((t-1.8)/(3.7*4+.6));line.style.opacity=fill.style.opacity=dot.style.opacity=sg(t,1.2,.5);fill.style.width=(prog*1160)+'px';dot.style.left=(48+prog*1160)+'px';show(note,eo(sg(t,20,.8)),{y:12})}});
+
+scene('math',20,r=>{
+ const ttl=$('<div class="abs disp" style="left:0;right:0;top:48px;text-align:center;font-size:42px">A real receipt. A real drop.</div>',r);
+ const tk=$('<div class="abs tk type" style="left:260px;top:120px;width:760px;height:470px;padding:26px 34px;box-sizing:border-box;font-size:24px"></div>',r);
+ const rowsD=[['Machine','Shell Shop · drop #1'],['Claw position','38.1%'],['Under the claw','slot 3 of 8: Pearl'],['Your centering','64.0%'],['Grip floor × prize weight','48% × 1.00'],['Hold chance (fixed first)','77.06%'],['Sealed roll','5797 of 10000 = 57.97%']];
+ const rows=rowsD.map((d,i)=>$('<div style="display:flex;justify-content:space-between;border-bottom:1px dotted #8A7F5E;padding:7px 0"><span>'+d[0]+'</span><b>'+d[1]+'</b></div>',tk));
+ const meter=$('<div class="abs" style="left:290px;top:600px;width:700px;height:26px;border-radius:13px;background:#cdbe96"></div>',r), mf=$('<div class="abs" style="left:290px;top:600px;width:0;height:26px;border-radius:13px;background:#2E7D5B"></div>',r), mk=$('<div class="abs" style="left:290px;top:588px;width:5px;height:50px;background:#F1E6C8;border-radius:3px;box-shadow:0 0 18px #F1E6C8"></div>',r);
+ const lab=$('<div class="abs disp" style="left:0;right:0;top:636px;text-align:center;font-size:27px"><span class="cglass">Roll 57.97% is at or below chance 77.06%: it HOLDS.</span></div>',r);
+ const stamp=$('<div class="abs disp" style="left:690px;top:452px;border:6px solid #2E7D5B;color:#2E7D5B;border-radius:12px;padding:6px 18px;font-size:34px">VERIFIED</div>',r);
+ const real=$('<div class="cap" style="bottom:14px">From our own devnet deployment. Rebuild it yourself with the public rules.</div>',r);
+ return t=>{show(ttl,eo(sg(t,.2,.6)));show(tk,eo(sg(t,.6,.7)),{y:30});rows.forEach((e,i)=>show(e,eo(sg(t,1.6+i*1.5,.5)),{x:20,y:0}));
+  const mo=sg(t,11,.6);meter.style.opacity=mf.style.opacity=mo;mf.style.width=(eo(sg(t,11.5,1.6))*700*.7706)+'px';mk.style.opacity=sg(t,13.6,.3);const fall=eo(sg(t,13.6,1));mk.style.left=(290+700*.5797)+'px';mk.style.top=(588-(1-fall)*120)+'px';
+  show(lab,eo(sg(t,15.2,.7)));const sp=eb(sg(t,16.6,.5));stamp.style.opacity=cl(sp*2);stamp.style.transform='rotate(-9deg) scale('+(2-sp)+')';show(real,eo(sg(t,18,.6)),{y:0})}});
+
+scene('limits',14,r=>{
+ const ttl=$('<div class="abs disp" style="left:0;right:0;top:70px;text-align:center;font-size:46px">What we are honest about</div>',r);
+ const cs=[['Hardware trust','The sealed room is an Intel TDX enclave. Strong, but a trust assumption, not trustless.'],['Throwaway wallets','Anyone can make several, so the race proves fair rolls, not unique people.'],['Turn-based','Each drop is real confirmed transactions, so it takes a few seconds. We never call it real-time.'],['Payout figures','The 63 / 55 / 44% blind payout numbers come from our own simulation, not live play.']];
+ const els=cs.map((c,i)=>$('<div class="vcard" style="left:'+(70+(i%2)*600)+'px;top:'+(190+Math.floor(i/2)*230)+'px"><h3 class="brass">'+c[0]+'</h3><p>'+c[1]+'</p></div>',r));
+ return t=>{show(ttl,eo(sg(t,.2,.6)));els.forEach((e,i)=>show(e,eo(sg(t,1.4+i*2.6,.7)),{y:34}))}});
+
+scene('outro',12,r=>{
+ const pin=$('<div class="abs" style="left:150px;top:160px;width:340px">'+pinchSVG('happy')+'</div>',r);
+ const h=$('<div class="abs disp" style="left:560px;top:150px;width:660px;font-size:68px;line-height:1.05">Pinch\'s Arcade</div>',r);
+ const tg=$('<div class="abs" style="left:560px;top:250px;width:640px;font-size:30px;line-height:1.35" ><span class="cream">The house always wins.</span><br><b class="brass">Until Pinch shows you the receipts.</b></div>',r);
+ const url=$('<div class="abs mono" style="left:560px;top:380px;font-size:30px;color:#7DF3E1;border:2px solid #7DF3E1;border-radius:14px;padding:12px 22px">pinchs-arcade.vercel.app</div>',r);
+ const chips=$('<div class="abs" style="left:560px;top:490px;width:660px"><span class="vchip">Solana devnet</span><span class="vchip">MagicBlock Ephemeral Rollups</span><span class="vchip">Private ER (TDX)</span><span class="vchip">MagicBlock VRF</span><span class="vchip">Anchor</span></div>',r);
+ const by=$('<div class="cap">Built solo for Solana Blitz v10 · Entertainment Finance</div>',r);
+ return t=>{show(pin,eb(sg(t,.2,.9)),{x:-60,y:0,s:.8});show(h,eo(sg(t,.8,.7)));show(tg,eo(sg(t,2,.7)));show(url,eo(sg(t,4.5,.7)));show(chips,eo(sg(t,6,.7)),{y:12});show(by,eo(sg(t,8,.7)),{y:0})}});
+
+// ---------- engine
+window.DURS=window.DURS||{};
+function layout(){let a=0;return SC.map(s=>{const d=window.DURS[s.id]||s.base;const o={s,start:a,d};a+=d;return o})}
+let L=layout();window.total=()=>{L=layout();return L.reduce((x,y)=>x+y.d,0)};
+window.render=function(t){L=layout();bg(t);const X=.45;
+ L.forEach(o=>{const lt=t-o.start;const on=lt>=-X&&lt<=o.d+X;o.s.root.style.display=on?'block':'none';if(!on)return;
+  const op=Math.min(cl((lt+X)/X),cl((o.d+X-lt)/X));o.s.root.style.opacity=op;o.s.upd(cl(lt,0,o.d)*o.s.base/o.d)})};
+window.render(0);
+</script></body></html>

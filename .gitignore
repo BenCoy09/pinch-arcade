@@ -1,0 +1,9 @@
+node_modules
+.vercel
+.env*
+*.png
+silent.mp4
+preview.mp4
+demo.mp4
+target
+faucet*.json

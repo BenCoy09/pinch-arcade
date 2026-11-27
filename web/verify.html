@@ -1,0 +1,49 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verify receipts · Pinch's Arcade</title>
+<style>
+:root{color-scheme:dark;--bg:#0B1620;--fg:#E8EEF0;--mut:#8FA3AD;--ok:#5CCB9E;--bad:#FF7A6B;--line:#1F3342;--brass:#E0A63A}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 Inter,system-ui,sans-serif;padding:24px max(16px,env(safe-area-inset-left))}
+main{max-width:720px;margin:0 auto}h1{font-size:1.6rem;margin:.2em 0}p{color:var(--mut)}a{color:var(--brass)}
+input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0F2230;color:var(--fg);font:14px ui-monospace,monospace}
+button{margin-top:10px;padding:12px 18px;border-radius:10px;border:0;background:var(--brass);color:#1B1A14;font-weight:700;cursor:pointer}
+table{width:100%;border-collapse:collapse;margin-top:18px;font:13px ui-monospace,monospace}th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
+.ok{color:var(--ok);font-weight:700}.bad{color:var(--bad);font-weight:700}.wrap{overflow-x:auto}#msg{margin-top:14px}
+</style></head><body><main>
+<h1>Verify any player's receipts</h1>
+<p>Paste a wallet address. This page reads that player's arcade account straight from Solana devnet and recomputes every receipt with the public rules, in your browser. It only has data after the player pressed <b>Save to Solana</b> (until then the account lives in the private rollup and is not readable from the base layer).</p>
+<input id="pk" placeholder="Player wallet address" autocomplete="off"><button id="go">Verify</button>
+<div id="msg"></div><div class="wrap" id="out"></div>
+<p style="margin-top:28px"><a href="index.html">Back to the arcade</a></p>
+<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
+<script src="config.js"></script>
+<script src="js/rules.js"></script><script src="js/chain.js"></script>
+<script>
+const R=window.Rules,C=window.Chain,$=id=>document.getElementById(id);
+window.PINCH_ONRETRY=(i,n)=>{$('msg').textContent='The free devnet RPC is rate limiting us. Retrying ('+i+' of '+n+')…'};
+const NAMES=['pearl','scallop','starfish','lantern fish','golden pearl'];
+async function run(){
+  const pk=$('pk').value.trim();$('out').innerHTML='';
+  if(!pk){$('msg').textContent='Enter an address.';return}
+  $('msg').textContent='Reading Solana devnet…';
+  try{
+    const r=await C.readBaseState(pk);
+    if(!r){$('msg').textContent='No arcade account for this address on devnet.';return}
+    const s=r.state, rcs=C.receipts(s);
+    let good=0,rows='';
+    for(const rc of rcs){
+      const have=rc.outcome===2||rc.outcome===3;
+      const x=R.recompute(s.authority,rc.round,rc.machine,rc.xPm,have?rc.randomness:null);
+      let ok=true;
+      if(rc.outcome===4){ok=true}
+      else if(x.outcome==='miss'){ok=rc.outcome===1}
+      else{ok=x.slot===rc.slot&&x.kind===rc.kind&&x.centering===rc.centering&&x.chance===rc.chance&&(!have||(x.roll===rc.roll&&(x.roll<=x.chance?3:2)===rc.outcome))}
+      if(ok)good++;
+      rows+='<tr><td>#'+rc.round+'</td><td>'+R.MACHINES[rc.machine].name+'</td><td>'+(x.outcome==='miss'?'-':NAMES[rc.kind])+'</td><td>'+(have?rc.roll+' ≤ '+rc.chance:'-')+'</td><td>'+C.OUTCOME[rc.outcome]+'</td><td class="'+(ok?'ok':'bad')+'">'+(ok?'VERIFIED':'MISMATCH')+'</td></tr>';
+    }
+    $('msg').innerHTML='Account <code>'+r.pda+'</code> · '+s.drops+' drops · '+s.wins+' held · showing last '+rcs.length+' receipts: <b class="'+(good===rcs.length?'ok':'bad')+'">'+good+' of '+rcs.length+' verified</b>';
+    $('out').innerHTML='<table><tr><th>Drop</th><th>Machine</th><th>Prize</th><th>Roll ≤ chance</th><th>Result</th><th>Check</th></tr>'+rows+'</table>';
+  }catch(e){$('msg').textContent='Could not read devnet: '+String(e.message||e).slice(0,160)}
+}
+$('go').onclick=run;
+const q=new URLSearchParams(location.search).get('p');if(q){$('pk').value=q;run()}
+</script></main></body></html>
